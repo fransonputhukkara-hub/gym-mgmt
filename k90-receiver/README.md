@@ -50,7 +50,7 @@ TEST_DATABASE_URL=postgres://postgres@localhost:5433/k90test npm test   # in bac
 1. Follow `docs/NETWORK.md` (security list, VM firewall, block volume at `/mnt/data`, DNS).
 2. Install Docker + Compose plugin, clone this repo to `/opt/k90`.
 3. ```bash
-   cd /opt/k90/deploy && cp .env.example .env && chmod 600 .env && nano .env
+   cd /opt/k90/k90-receiver/deploy && cp .env.example .env && chmod 600 .env && nano .env
    mkdir -p /mnt/data/k90/pgdata
    ./scripts/init-letsencrypt.sh
    ```
