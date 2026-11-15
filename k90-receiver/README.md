@@ -75,7 +75,8 @@ Containers use `restart: unless-stopped`; enable Docker at boot (`systemctl enab
 
 ## Design notes
 
-- **Raw first.** Every device request is saved before parsing. Parse failures never discard data; bad lines are flagged in `processing_error` and `device_logs`.
+- **Raw first.** Every device request is saved before parsing. Parse failures never discard data; bad lines are
+  flagged in `processing_error` and `device_logs`.
 - **Atomic batches.** A batch is one DB transaction. On DB failure the receiver replies HTTP 500 so the device keeps and re-sends the records.
 - **Dedup.** `UNIQUE(device_id, sha256(serial|pin|time|status|verify|workcode))`, documented in `PROTOCOL.md`.
 - **Time.** Device time is preserved verbatim (`attendance_time_raw`) and converted with `DEVICE_TIMEZONE` into `attendance_timestamp`; receipt time is a separate column.

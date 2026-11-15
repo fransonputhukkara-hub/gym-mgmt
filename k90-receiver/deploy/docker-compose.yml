@@ -1,0 +1,76 @@
+name: k90
+
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "10m", max-file: "5" }
+
+services:
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: k90
+      POSTGRES_USER: k90
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in .env}
+    volumes:
+      - ${PG_DATA_DIR:-/mnt/data/k90/pgdata}:/var/lib/postgresql/data
+    networks: [db]                       # internal network, no published ports
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U k90 -d k90"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging: *logging
+
+  receiver:
+    build: ../backend
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      DATABASE_URL: postgres://k90:${POSTGRES_PASSWORD}@postgres:5432/k90
+      DASHBOARD_TOKEN: ${DASHBOARD_TOKEN:?set in .env}
+      DEVICE_TIMEZONE: ${DEVICE_TIMEZONE:-Asia/Kolkata}
+      ALLOWED_DEVICE_SERIALS: ${ALLOWED_DEVICE_SERIALS:-}
+      AUTO_REGISTER_DEVICES: ${AUTO_REGISTER_DEVICES:-true}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      DISK_PATH: /data-disk
+    volumes:
+      - ${PG_DATA_DIR:-/mnt/data/k90/pgdata}:/data-disk:ro   # lets /health report free space of the data volume
+    networks: [db, web]
+    logging: *logging
+
+  nginx:
+    build:
+      context: ..
+      dockerfile: deploy/nginx/Dockerfile
+    restart: unless-stopped
+    depends_on: [receiver]
+    environment:
+      DOMAIN: ${DOMAIN:?set in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - certs:/etc/letsencrypt
+      - acme:/var/www/certbot
+    networks: [web]
+    logging: *logging
+
+  certbot:
+    image: certbot/certbot:latest
+    restart: unless-stopped
+    entrypoint: /bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done'
+    volumes:
+      - certs:/etc/letsencrypt
+      - acme:/var/www/certbot
+    networks: [web]
+    logging: *logging
+
+networks:
+  db: { internal: true }
+  web: {}
+
+volumes:
+  certs:
+  acme:
