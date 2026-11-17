@@ -2,14 +2,40 @@
 
 ## Verification status
 
-**Nothing in this document has been verified against a physical K90 yet.** The receiver implements the widely
-documented ZKTeco/eSSL "iclock" push protocol (eSSL devices are ZKTeco OEM hardware). Firmware varies, so each item
-below is marked:
+Partly verified. Firmware serial `NFZ8235001760` (eSSL K90) was captured by the `k90-diagnostic` service on 2026-11-15
+to 2026-11-17. That service logged only method, path, serial, body and a classification. **Query strings and the
+server's replies were not captured.** Items are marked:
 
-- **ASSUMED** – taken from public protocol descriptions; must be confirmed from a real capture.
-- **VERIFIED** – confirmed against a capture from the real K90 (fill in as you go, see `VERIFICATION_CHECKLIST.md`).
+- **VERIFIED** – seen in real captures from the physical K90.
+- **ASSUMED** – taken from public iclock protocol descriptions; still needs a real capture.
 
-Nothing is VERIFIED today. Simulator tests prove the software handles these formats; they do not prove the K90 sends them.
+| Item | Status | Evidence |
+|---|---|---|
+| Paths end in `.aspx`: `GET /iclock/getrequest.aspx`, `/iclock/cdata.aspx` | VERIFIED | Real captures. Receiver strips `.aspx` (fixed after this was found) |
+| Heartbeat is `GET /iclock/getrequest.aspx` every ~10 s with empty body | VERIFIED | Captures on 2026-11-17 at 10 s spacing |
+| Attendance is `POST /iclock/cdata.aspx` with tab-separated lines | VERIFIED | Captures. Layout below |
+| Real-time push: a punch arrives within about a second | VERIFIED | 2026-11-15 14:55:24 punch received 09:25:24Z (= 14:55:24 IST) |
+| Backlog upload after downtime (device buffers and sends later) | VERIFIED | 2026-11-15 01:07 to 02:23 punches arrived at 09:13Z in one batch |
+| Device clock sends local time with no offset, and it is IST (UTC+5:30) | VERIFIED | Device time equals receipt time plus 5 h 30 min |
+| Operation log body begins `OPLOG <n>\t...` | VERIFIED (body only) | One capture. Fields not interpreted |
+| Query parameters `SN`, `table=ATTLOG`, `Stamp` | ASSUMED | Not in the diagnostic log. SN is confirmed (serial was extracted) |
+| Registration request (`GET /iclock/cdata.aspx?SN=...&options=all...`) and the option reply | ASSUMED | Not seen in the captures reviewed |
+| Reply `OK` accepted for heartbeat and attendance | ASSUMED | Device keeps working with the diagnostic service, but its replies were not captured |
+| Meaning of `verify` = `2` and `status` = `0` | UNKNOWN | Every captured punch has status 0, verify 2. Needs a known test (finger vs card vs password) |
+
+### Real attendance line layout (VERIFIED)
+
+```
+1 \t 2026-11-15 14:55:24 \t 0 \t 2 \t 0 \t \t \t 0 \t 0 \t
+PIN   time (device local)    status verify workcode  (reserved/empty ...)
+```
+
+10 tab-separated fields with a trailing tab. Fields 1 to 5 are used by the receiver; the rest are kept in the raw
+body. Observed so far: only PIN `1`. Punches a few seconds apart by the same PIN are distinct events and must all be
+kept (real example: 07:43:05, 07:43:07, 07:43:09). The fingerprint includes the second, so they are.
+
+Nothing here replaces testing the production receiver with the physical device (`VERIFICATION_CHECKLIST.md`).
+The tests in `backend/tests/real-device.test.ts` replay the real bodies above.
 
 ## How to verify (capture mode)
 

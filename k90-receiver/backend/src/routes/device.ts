@@ -30,7 +30,8 @@ export function registerDeviceRoutes(app: FastifyInstance, pool: Pool, cfg: Conf
     handler: async (req, reply) => {
       const q: Record<string, string> = {};
       for (const [k, v] of Object.entries(req.query as Record<string, unknown>)) q[k.toUpperCase()] = Array.isArray(v) ? String(v[0]) : String(v);
-      const sub = String((req.params as Record<string, string>)['*'] ?? '').toLowerCase();
+      // Real K90 firmware uses `.aspx` suffixes (cdata.aspx, getrequest.aspx); other firmware omits them.
+      const sub = String((req.params as Record<string, string>)['*'] ?? '').toLowerCase().replace(/\.aspx$/, '');
       const body = typeof req.body === 'string' ? req.body : '';
       const table = (q.TABLE ?? '').toUpperCase();
       const method = req.method;
