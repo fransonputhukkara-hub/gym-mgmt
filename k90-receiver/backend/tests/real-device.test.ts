@@ -42,6 +42,13 @@ describe('real K90 captures (.aspx paths)', () => {
     expect((await q('SELECT status FROM devices'))[0].status).toBe('online');
   });
 
+  it('registration reply is byte-identical to the reply the k90-diagnostic service sent (device accepted it)', async () => {
+    const r = await get(`/iclock/cdata.aspx?SN=${SN}`);
+    expect(r.body).toBe(
+      `GET OPTION FROM: ${SN}\n` + 'ATTLOGStamp=None\n' + 'OPERLOGStamp=None\n' + 'ErrorDelay=30\n' + 'Delay=10\n' +
+      'TransTimes=00:00;14:00\n' + 'TransInterval=1\n' + 'TransFlag=TransData AttLog\tOpLog\n' + 'Realtime=1\n' + 'Encrypt=None\n');
+  });
+
   it('registration on /iclock/cdata.aspx is recognised', async () => {
     const r = await get(`/iclock/cdata.aspx?SN=${SN}&options=all`);
     expect(r.body).toContain(`GET OPTION FROM: ${SN}`);

@@ -77,7 +77,7 @@ export function registerDeviceRoutes(app: FastifyInstance, pool: Pool, cfg: Conf
           await deviceLog(pool, dev.id, 'registration_request', 'Device requested options', { query: q });
           await setRaw(rawId, 'processed', null);
           return reply.type('text/plain').send(registrationConfig(sn, {
-            attlogStamp: dev.lastAttlogStamp, delay: cfg.pollDelaySeconds, errorDelay: cfg.errorDelaySeconds }));
+            attlogStamp: cfg.echoAttlogStamp ? dev.lastAttlogStamp : null, delay: cfg.pollDelaySeconds, errorDelay: cfg.errorDelaySeconds }));
         }
         if (kind === 'heartbeat') {
           await setRaw(rawId, 'processed', null);

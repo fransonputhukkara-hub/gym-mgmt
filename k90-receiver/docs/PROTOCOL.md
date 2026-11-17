@@ -18,9 +18,9 @@ server's replies were not captured.** Items are marked:
 | Backlog upload after downtime (device buffers and sends later) | VERIFIED | 2026-11-15 01:07 to 02:23 punches arrived at 09:13Z in one batch |
 | Device clock sends local time with no offset, and it is IST (UTC+5:30) | VERIFIED | Device time equals receipt time plus 5 h 30 min |
 | Operation log body begins `OPLOG <n>\t...` | VERIFIED (body only) | One capture. Fields not interpreted |
-| Query parameters `SN`, `table=ATTLOG`, `Stamp` | ASSUMED | Not in the diagnostic log. SN is confirmed (serial was extracted) |
-| Registration request (`GET /iclock/cdata.aspx?SN=...&options=all...`) and the option reply | ASSUMED | Not seen in the captures reviewed |
-| Reply `OK` accepted for heartbeat and attendance | ASSUMED | Device keeps working with the diagnostic service, but its replies were not captured |
+| Query parameter `SN` (serial) and `table=ATTLOG` for attendance | VERIFIED (indirectly) | The diagnostic service reads `SN` and `table` and classified real requests as attendance, so both exist. `Stamp` is still unseen |
+| Registration: `GET /iclock/cdata.aspx?SN=...` answered with the option block | VERIFIED (reply) | The device runs on the diagnostic service's reply (Delay=10, ErrorDelay=30, TransFlag=`TransData AttLog\tOpLog`, Realtime=1, no ATTPHOTOStamp). The production receiver sends the identical text, covered by a byte-for-byte test. The registration request itself (parameters) was not logged |
+| Reply `OK` to heartbeat and attendance POSTs | VERIFIED | `server.js` of the diagnostic service replies `OK` and the device uploads each punch once and keeps its 10 s heartbeat |
 | Meaning of `verify` = `2` and `status` = `0` | UNKNOWN | Every captured punch has status 0, verify 2. Needs a known test (finger vs card vs password) |
 
 ### Real attendance line layout (VERIFIED)
@@ -106,7 +106,7 @@ UNIQUE (device_id, event_fingerprint)   -- insert uses ON CONFLICT DO NOTHING
 
 ## Historical data
 
-On registration the receiver replies `ATTLOGStamp=<last stamp it stored>` or `None` for a device it has never stored a stamp for.
+By default the receiver replies `ATTLOGStamp=None`, exactly like the proven diagnostic service. It still records the `Stamp` of each committed upload; set `ECHO_ATTLOG_STAMP=true` to send the stored value on registration (UNVERIFIED on the K90).
 In the iclock protocol this lets the device decide what to (re)send. The receiver stores `Stamp` only after the batch transaction
 commits. Because of deduplication, re-sent history is harmless. **Whether the K90 honours `ATTLOGStamp=None` by uploading its
 backlog is UNVERIFIED**; test by punching while the server is unreachable (see checklist item 9) and by observing

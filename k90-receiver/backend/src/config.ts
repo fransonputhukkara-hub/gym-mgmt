@@ -15,6 +15,8 @@ export interface Config {
   /** Config returned to the device on registration. Values are protocol-dependent; see docs/PROTOCOL.md. */
   pollDelaySeconds: number;
   errorDelaySeconds: number;
+  /** Echo the last stored ATTLOG Stamp in the registration reply. Off = identical to the proven diagnostic reply (always None). */
+  echoAttlogStamp: boolean;
 }
 
 function bool(v: string | undefined, d: boolean): boolean {
@@ -47,8 +49,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Part
     diskMinFreePercent: int(env.DISK_MIN_FREE_PERCENT, 10),
     logLevel: env.LOG_LEVEL ?? 'info',
     migrationsDir: env.MIGRATIONS_DIR ?? new URL('../migrations', import.meta.url).pathname,
-    pollDelaySeconds: int(env.DEVICE_POLL_DELAY_SECONDS, 30),
-    errorDelaySeconds: int(env.DEVICE_ERROR_DELAY_SECONDS, 60),
+    pollDelaySeconds: int(env.DEVICE_POLL_DELAY_SECONDS, 10),
+    errorDelaySeconds: int(env.DEVICE_ERROR_DELAY_SECONDS, 30),
+    echoAttlogStamp: bool(env.ECHO_ATTLOG_STAMP, false),
   };
   return { ...cfg, ...overrides };
 }

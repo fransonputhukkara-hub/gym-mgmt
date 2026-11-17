@@ -221,8 +221,13 @@ describe('persistence, restart, DB recovery', () => {
     expect(r.status).toBe(200);
     expect(await q('SELECT 1 FROM attendance_events')).toHaveLength(1);
   });
-  it('history replay after reconnect: stamp stored and returned on registration', async () => {
+  it('stamp is stored; echoed on registration only when ECHO_ATTLOG_STAMP is enabled', async () => {
     await sim.punch([['1', '2025-03-04 09:00:00']], '4242');
-    expect((await sim.register()).text).toContain('ATTLOGStamp=4242');
+    expect((await q('SELECT last_attlog_stamp FROM devices'))[0].last_attlog_stamp).toBe('4242');
+    expect((await sim.register()).text).toContain('ATTLOGStamp=None'); // default: same as proven diagnostic reply
+    const a = await startApp({ echoAttlogStamp: true });
+    const s2 = new SimDevice({ baseUrl: 'http://x', serial: 'SIM-T001', fetchImpl: injectFetch(a) });
+    expect((await s2.register()).text).toContain('ATTLOGStamp=4242');
+    await a.close();
   });
 });

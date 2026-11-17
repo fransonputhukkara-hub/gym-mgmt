@@ -120,7 +120,6 @@ export function registrationConfig(sn: string, opts: { attlogStamp: string | nul
     `GET OPTION FROM: ${sn}`,
     `ATTLOGStamp=${opts.attlogStamp ?? 'None'}`,
     'OPERLOGStamp=None',
-    'ATTPHOTOStamp=None',
     `ErrorDelay=${opts.errorDelay}`,
     `Delay=${opts.delay}`,
     'TransTimes=00:00;14:00',
